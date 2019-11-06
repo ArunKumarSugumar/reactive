@@ -1,0 +1,22 @@
+package com.example.spring.reactive.reactivespring.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+/**
+ * @author ArunKumar.Sugumar
+ */
+@Document //@Entity
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Item {
+
+    @Id
+    private String id;
+    private String description;
+    private double price;
+}
