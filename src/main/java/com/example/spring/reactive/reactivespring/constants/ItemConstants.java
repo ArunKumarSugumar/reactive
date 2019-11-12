@@ -7,4 +7,5 @@ public class ItemConstants {
 
     public static final String ITEM_ENDPOINT_V1 = "/v1/item";
     public static final String ITEM_FUNCTIONAL_ENDPOINT_V1 = "/v1/fun/item";
+    public static final String ITEM_STREAM_ENDPOINT_V1 = "/v1/stream/item";
 }
