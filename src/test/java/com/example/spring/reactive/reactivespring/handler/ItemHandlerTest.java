@@ -1,4 +1,4 @@
-package com.example.spring.reactive.reactivespring.controller.v1;
+package com.example.spring.reactive.reactivespring.handler;
 
 import com.example.spring.reactive.reactivespring.document.Item;
 import com.example.spring.reactive.reactivespring.repository.ItemReactiveRepository;
@@ -15,11 +15,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static com.example.spring.reactive.reactivespring.constants.ItemConstants.ITEM_ENDPOINT_V1;
+import static com.example.spring.reactive.reactivespring.constants.ItemConstants.ITEM_FUNCTIONAL_ENDPOINT_V1;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author ArunKumar.Sugumar
@@ -29,7 +31,8 @@ import static com.example.spring.reactive.reactivespring.constants.ItemConstants
 @DirtiesContext
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
-class ItemControllerTest {
+class ItemHandlerTest {
+
 
     @Autowired
     WebTestClient webTestClient;
@@ -54,10 +57,11 @@ class ItemControllerTest {
                 .blockLast();
     }
 
+
     @Test
     void getAllItems() {
 
-        webTestClient.get().uri(ITEM_ENDPOINT_V1)
+        webTestClient.get().uri(ITEM_FUNCTIONAL_ENDPOINT_V1)
                 .exchange()
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -66,41 +70,51 @@ class ItemControllerTest {
     }
 
     @Test
-    void getOneItem() {
-        webTestClient.get().uri(ITEM_ENDPOINT_V1.concat("/{id}"), "Apple")
+    void getAllItemsApproachTwo() {
+
+        webTestClient.get().uri(ITEM_FUNCTIONAL_ENDPOINT_V1)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.price", 299.0);
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBodyList(Item.class)
+                .consumeWith((response) -> {
+                    response.getResponseBody().forEach(item -> {
+                        assertTrue(item.getId() != null);
+                    });
+                });
     }
 
     @Test
-    void getNoItem() {
-        webTestClient.get().uri(ITEM_ENDPOINT_V1.concat("/{id}"), "ABC")
+    void getAllItemsApproachThree() {
+
+        Flux<Item> responseBody = webTestClient.get().uri(ITEM_FUNCTIONAL_ENDPOINT_V1)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .returnResult(Item.class)
+                .getResponseBody();
+        StepVerifier.create(responseBody)
+                .expectNextCount(4)
+                .verifyComplete();
     }
 
     @Test
     void saveItem() {
 
-        Item item = new Item(null, "Apple X", 999.0);
-
-        webTestClient.post().uri(ITEM_ENDPOINT_V1)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(item), Item.class)
+        webTestClient.post()
+                .uri(ITEM_FUNCTIONAL_ENDPOINT_V1)
+                .body(Mono.just(new Item(null, "BOSE Speaker", 1000.0)), Item.class)
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody()
-                .jsonPath("$.id").isNotEmpty()
-                .jsonPath("$.price").isEqualTo(999.0);
-
+                .jsonPath("$.id").isNotEmpty();
     }
 
     @Test
     void deleteItem() {
 
-        webTestClient.delete().uri(ITEM_ENDPOINT_V1.concat("/{id}"), "Apple")
+        webTestClient.delete()
+                .uri(ITEM_FUNCTIONAL_ENDPOINT_V1.concat("/{id}"), "Apple")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus().isOk()
@@ -110,14 +124,13 @@ class ItemControllerTest {
     @Test
     void updateItem() {
 
-        webTestClient.put().uri(ITEM_ENDPOINT_V1.concat("/{id}"), "Apple")
-                .contentType(MediaType.APPLICATION_JSON)
+        webTestClient.put()
+                .uri(ITEM_FUNCTIONAL_ENDPOINT_V1.concat("/{id}"), "Apple")
+                .body(Mono.just(new Item("Apple", "Apple Ipad", 250.0)), Item.class)
                 .accept(MediaType.APPLICATION_JSON)
-                .body(Mono.just(new Item(null, "Head Phones", 100.00)), Item.class)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.price", 100.00);
-
+                .jsonPath("$.price", 250.0);
     }
 }
